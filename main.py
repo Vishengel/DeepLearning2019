@@ -25,7 +25,7 @@ classes = ('plane', 'car', 'bird', 'cat',
 
 
 
-class Net(nn.Module):
+class LeNet(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
@@ -45,13 +45,15 @@ class Net(nn.Module):
         return x
 
 
-net = Net()
+net = LeNet()
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
 for epoch in range(2):  # loop over the dataset multiple times
 
     running_loss = 0.0
+    running_acc = 0.0
+    total = 0
     for i, data in enumerate(trainloader, 0):
         # get the inputs
         inputs, labels = data
@@ -61,15 +63,21 @@ for epoch in range(2):  # loop over the dataset multiple times
 
         # forward + backward + optimize
         outputs = net(inputs)
+        _, predicted = torch.max(outputs.data, 1)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
 
         # print statistics
         running_loss += loss.item()
+        running_acc += (predicted == labels).sum().item()
+        total += labels.size(0)
+
         if i % 2000 == 1999:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 2000))
+            print('[%d, %5d] loss: %.3f accuracy: %.3f' %
+                  (epoch + 1, i + 1, running_loss / 2000, 100 * running_acc / total))
             running_loss = 0.0
+            running_acc = 0.0
+            total = 0
 
 print('Finished Training')
