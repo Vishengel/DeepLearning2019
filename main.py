@@ -4,11 +4,13 @@ import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 import torch.optim as optim
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import KFold
 from skorch import NeuralNetClassifier
+from torch.utils.data import Subset
 
 # ToDo
-# - Implement k-fold cross validation
+# - Increase amount of training epochs
+# - Re-init network after each fold
 # - Choose optimizers
 # - Automate optimizer comparison
 # - Plot accuracy over time
@@ -26,10 +28,8 @@ testset = torchvision.datasets.CIFAR10(root='./data', train=False,
 testloader = torch.utils.data.DataLoader(testset, batch_size=4,
                                          shuffle=False, num_workers=2)
 
-classes = ('plane', 'car', 'bird', 'cat',
-           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
-
+classes = ['plane', 'car', 'bird', 'cat',
+           'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
 
 class LeNet(nn.Module):
@@ -52,25 +52,49 @@ class LeNet(nn.Module):
         return x
 
 net = LeNet()
-
+"""
 skorch_net = NeuralNetClassifier(
     module=LeNet(),
-    criterion = nn.CrossEntropyLoss(),
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-)
-
-y_pred = cross_val_predict(skorch_net, trainloader, classes, cv=5)
-
+    criterion=nn.CrossEntropyLoss(),
+    optimizer=optim.SGD(net.parameters(), lr=0.001, momentum=0.9),
+    batch_size=64,
+    train_split=None)
 """
-for epoch in range(2):  # loop over the dataset multiple times
+
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+
+#X = []
+#y = []
+
+#for data in trainset:
+#    X.append(data[0])
+#    y.append(data[1])
+
+kf = KFold(n_splits=5)
+accuracies = []
+
+for train_index, val_index in kf.split(trainset):
+    #X_train, X_test = X[train_index], X[test_index]
+    #y_train, y_test = y[train_index], y[test_index]
+    train_split = Subset(trainset, train_index)
+    val_split = Subset(trainset, val_index)
+
+    trainloader = torch.utils.data.DataLoader(train_split, batch_size=4,
+                                              shuffle=True, num_workers=2)
+
+    valloader = torch.utils.data.DataLoader(val_split, batch_size=4,
+                                              shuffle=True, num_workers=2)
 
     running_loss = 0.0
     running_acc = 0.0
+    val_acc = 0.0
     total = 0
+
     for i, data in enumerate(trainloader, 0):
         # get the inputs
         inputs, labels = data
-
+        
         # zero the parameter gradients
         optimizer.zero_grad()
 
@@ -80,18 +104,33 @@ for epoch in range(2):  # loop over the dataset multiple times
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
-
-        # print statistics
+                # print statistics
         running_loss += loss.item()
         running_acc += (predicted == labels).sum().item()
         total += labels.size(0)
 
         if i % 2000 == 1999:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f accuracy: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 2000, 100 * running_acc / total))
+            print('minibatch: %5d loss: %.3f accuracy: %.3f' %
+                  (i + 1, running_loss / 2000, 100 * running_acc / total))
             running_loss = 0.0
             running_acc = 0.0
             total = 0
-"""
 
-print('Finished Training')
+    print('Finished Training')
+
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for data in valloader:
+            images, labels = data
+            outputs = net(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    val_accuracy = (100 * correct / total)
+    accuracies.append(val_accuracy)
+    print('Accuracy of the network on the validation split: %d %%' % val_accuracy)
+
+
+
