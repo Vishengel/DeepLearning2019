@@ -4,7 +4,14 @@ import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 import torch.optim as optim
+from sklearn.model_selection import cross_val_predict
+from skorch import NeuralNetClassifier
 
+# ToDo
+# - Implement k-fold cross validation
+# - Choose optimizers
+# - Automate optimizer comparison
+# - Plot accuracy over time
 
 transform = transforms.Compose(
     [transforms.ToTensor(),
@@ -27,7 +34,7 @@ classes = ('plane', 'car', 'bird', 'cat',
 
 class LeNet(nn.Module):
     def __init__(self):
-        super(Net, self).__init__()
+        super(LeNet, self).__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
@@ -44,11 +51,17 @@ class LeNet(nn.Module):
         x = self.fc3(x)
         return x
 
-
 net = LeNet()
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
+skorch_net = NeuralNetClassifier(
+    module=LeNet(),
+    criterion = nn.CrossEntropyLoss(),
+    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+)
+
+y_pred = cross_val_predict(skorch_net, trainloader, classes, cv=5)
+
+"""
 for epoch in range(2):  # loop over the dataset multiple times
 
     running_loss = 0.0
@@ -79,5 +92,6 @@ for epoch in range(2):  # loop over the dataset multiple times
             running_loss = 0.0
             running_acc = 0.0
             total = 0
+"""
 
 print('Finished Training')
