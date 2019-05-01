@@ -5,7 +5,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torch.optim as optim
 from sklearn.model_selection import KFold
-from skorch import NeuralNetClassifier
+# from skorch import NeuralNetClassifier
 from torch.utils.data import Subset
 
 # ToDo
@@ -15,17 +15,21 @@ from torch.utils.data import Subset
 # - Automate optimizer comparison
 # - Plot accuracy over time
 
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda:0" if use_cuda else "cpu")
+print(device)
+
 transform = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=10,
                                           shuffle=True, num_workers=2)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                        download=True, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=4,
+testloader = torch.utils.data.DataLoader(testset, batch_size=10,
                                          shuffle=False, num_workers=2)
 
 classes = ['plane', 'car', 'bird', 'cat',
@@ -52,6 +56,7 @@ class LeNet(nn.Module):
         return x
 
 net = LeNet()
+net.cuda()
 """
 skorch_net = NeuralNetClassifier(
     module=LeNet(),
@@ -62,7 +67,9 @@ skorch_net = NeuralNetClassifier(
 """
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+# optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+# optimizer = optim.Adam(net.parameters(), lr=0.001)
+optimizer = optim.RMSprop(net.parameters(), lr=0.001)
 
 #X = []
 #y = []
@@ -71,7 +78,7 @@ optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 #    X.append(data[0])
 #    y.append(data[1])
 
-kf = KFold(n_splits=5)
+kf = KFold(n_splits=25)
 accuracies = []
 
 for train_index, val_index in kf.split(trainset):
@@ -93,8 +100,8 @@ for train_index, val_index in kf.split(trainset):
 
     for i, data in enumerate(trainloader, 0):
         # get the inputs
-        inputs, labels = data
-        
+        inputs, labels = data[0].to(device), data[1].to(device)
+
         # zero the parameter gradients
         optimizer.zero_grad()
 
@@ -122,7 +129,7 @@ for train_index, val_index in kf.split(trainset):
     total = 0
     with torch.no_grad():
         for data in valloader:
-            images, labels = data
+            images, labels = data[0].to(device), data[1].to(device)
             outputs = net(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
