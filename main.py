@@ -91,8 +91,14 @@ class AlexNet(nn.Module):
 
 
 #net = LeNet()
-net = AlexNet()
-net.cuda()
+# net1 = AlexNet()
+# net1.cuda()
+# net2 = AlexNet()
+# net2.cuda()
+# net3 = AlexNet()
+# net3.cuda()
+# nets = [net1, net2, net3]
+# print(nets)
 """
 skorch_net = NeuralNetClassifier(
     module=LeNet(),
@@ -107,7 +113,7 @@ criterion = nn.CrossEntropyLoss()
 # optimizer = optim.Adam(net.parameters(), lr=0.0001)
 # optimizer = optim.RMSprop(net.parameters(), lr=0.0001)
 
-optimizers = [optim.SGD(net.parameters(), lr=0.001, momentum=0.9), optim.Adam(net.parameters(), lr=0.0001), optim.RMSprop(net.parameters(), lr=0.0001)]
+# optimizers = [optim.SGD(AlexNet().parameters(),lr=0.001, momentum=0.9), optim.Adam(AlexNet().parameters(), lr=0.0001), optim.RMSprop(AlexNet().parameters(), lr=0.0001)]
 
 #X = []
 #y = []
@@ -116,14 +122,20 @@ optimizers = [optim.SGD(net.parameters(), lr=0.001, momentum=0.9), optim.Adam(ne
 #    X.append(data[0])
 #    y.append(data[1])
 
-kf = KFold(n_splits=5)
+kf = KFold(n_splits=10)
 
 accuracies = []
-for optimizer in optimizers:
+for idx in range(0,3):
     partAcc = []
-    idx = 0
-    opt = 0
+    net = AlexNet()
+    net.cuda()
 
+    if idx == 0:
+        optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+    elif idx == 1:
+        optimizer = optim.Adam(net.parameters(), lr=0.0001)
+    else:
+        optimizer = optim.RMSprop(net.parameters(), lr=0.0001)
 
 
     for train_index, val_index in kf.split(trainset):
@@ -168,8 +180,7 @@ for optimizer in optimizers:
                 running_acc = 0.0
                 total = 0
 
-        print('n: %d' % idx)
-        idx += 1
+
         print('Finished Training')
 
         correct = 0
@@ -186,8 +197,8 @@ for optimizer in optimizers:
         partAcc.append(val_accuracy)
         print('Accuracy of the network on the validation split: %d %%' % val_accuracy)
 
+    print('n: %d' % idx)
     accuracies.append(partAcc)
-    opt += 1
 
 print(accuracies)
 
