@@ -103,9 +103,11 @@ skorch_net = NeuralNetClassifier(
 """
 
 criterion = nn.CrossEntropyLoss()
-# optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-# optimizer = optim.Adam(net.parameters(), lr=0.001)
-optimizer = optim.RMSprop(net.parameters(), lr=0.001)
+# optimizer = optim.SGD(net.parameters(), lr=0.0001, momentum=0.9)
+# optimizer = optim.Adam(net.parameters(), lr=0.0001)
+# optimizer = optim.RMSprop(net.parameters(), lr=0.0001)
+
+optimizers = [optim.SGD(net.parameters(), lr=0.001, momentum=0.9), optim.Adam(net.parameters(), lr=0.0001), optim.RMSprop(net.parameters(), lr=0.0001)]
 
 #X = []
 #y = []
@@ -114,66 +116,82 @@ optimizer = optim.RMSprop(net.parameters(), lr=0.001)
 #    X.append(data[0])
 #    y.append(data[1])
 
-kf = KFold(n_splits=25)
+kf = KFold(n_splits=5)
+
 accuracies = []
+for optimizer in optimizers:
+    partAcc = []
+    idx = 0
+    opt = 0
 
-for train_index, val_index in kf.split(trainset):
-    #X_train, X_test = X[train_index], X[test_index]
-    #y_train, y_test = y[train_index], y[test_index]
-    train_split = Subset(trainset, train_index)
-    val_split = Subset(trainset, val_index)
 
-    trainloader = torch.utils.data.DataLoader(train_split, batch_size=4,
-                                              shuffle=True, num_workers=2)
 
-    valloader = torch.utils.data.DataLoader(val_split, batch_size=4,
-                                              shuffle=True, num_workers=2)
+    for train_index, val_index in kf.split(trainset):
+        #X_train, X_test = X[train_index], X[test_index]
+        #y_train, y_test = y[train_index], y[test_index]
+        train_split = Subset(trainset, train_index)
+        val_split = Subset(trainset, val_index)
 
-    running_loss = 0.0
-    running_acc = 0.0
-    val_acc = 0.0
-    total = 0
+        trainloader = torch.utils.data.DataLoader(train_split, batch_size=4,
+                                                  shuffle=True, num_workers=2)
 
-    for i, data in enumerate(trainloader, 0):
-        # get the inputs
-        inputs, labels = data[0].to(device), data[1].to(device)
+        valloader = torch.utils.data.DataLoader(val_split, batch_size=4,
+                                                  shuffle=True, num_workers=2)
 
-        # zero the parameter gradients
-        optimizer.zero_grad()
+        running_loss = 0.0
+        running_acc = 0.0
+        val_acc = 0.0
+        total = 0
 
-        # forward + backward + optimize
-        outputs = net(inputs)
-        _, predicted = torch.max(outputs.data, 1)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-                # print statistics
-        running_loss += loss.item()
-        running_acc += (predicted == labels).sum().item()
-        total += labels.size(0)
+        for i, data in enumerate(trainloader, 0):
+            # get the inputs
+            inputs, labels = data[0].to(device), data[1].to(device)
 
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print('minibatch: %5d loss: %.3f accuracy: %.3f' %
-                  (i + 1, running_loss / 2000, 100 * running_acc / total))
-            running_loss = 0.0
-            running_acc = 0.0
-            total = 0
+            # zero the parameter gradients
+            optimizer.zero_grad()
 
-    print('Finished Training')
-
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for data in valloader:
-            images, labels = data[0].to(device), data[1].to(device)
-            outputs = net(images)
+            # forward + backward + optimize
+            outputs = net(inputs)
             _, predicted = torch.max(outputs.data, 1)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+                    # print statistics
+            running_loss += loss.item()
+            running_acc += (predicted == labels).sum().item()
             total += labels.size(0)
-            correct += (predicted == labels).sum().item()
 
-    val_accuracy = (100 * correct / total)
-    accuracies.append(val_accuracy)
-    print('Accuracy of the network on the validation split: %d %%' % val_accuracy)
+            if i % 2000 == 1999:    # print every 2000 mini-batches
+                print('minibatch: %5d loss: %.3f accuracy: %.3f' %
+                      (i + 1, running_loss / 2000, 100 * running_acc / total))
+                running_loss = 0.0
+                running_acc = 0.0
+                total = 0
+
+        print('n: %d' % idx)
+        idx += 1
+        print('Finished Training')
+
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for data in valloader:
+                images, labels = data[0].to(device), data[1].to(device)
+                outputs = net(images)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+        val_accuracy = (100 * correct / total)
+        partAcc.append(val_accuracy)
+        print('Accuracy of the network on the validation split: %d %%' % val_accuracy)
+
+    accuracies.append(partAcc)
+    opt += 1
+
+print(accuracies)
+
+
 
 
 
