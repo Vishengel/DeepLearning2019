@@ -90,57 +90,16 @@ class AlexNet(nn.Module):
         return x
 
 
-#net = LeNet()
-# net1 = AlexNet()
-# net1.cuda()
-# net2 = AlexNet()
-# net2.cuda()
-# net3 = AlexNet()
-# net3.cuda()
-# nets = [net1, net2, net3]
-# print(nets)
-"""
-skorch_net = NeuralNetClassifier(
-    module=LeNet(),
-    criterion=nn.CrossEntropyLoss(),
-    optimizer=optim.SGD(net.parameters(), lr=0.001, momentum=0.9),
-    batch_size=64,
-    train_split=None)
-"""
-
 criterion = nn.CrossEntropyLoss()
-# optimizer = optim.SGD(net.parameters(), lr=0.0001, momentum=0.9)
-# optimizer = optim.Adam(net.parameters(), lr=0.0001)
-# optimizer = optim.RMSprop(net.parameters(), lr=0.0001)
-
-# optimizers = [optim.SGD(AlexNet().parameters(),lr=0.001, momentum=0.9), optim.Adam(AlexNet().parameters(), lr=0.0001), optim.RMSprop(AlexNet().parameters(), lr=0.0001)]
-
-#X = []
-#y = []
-
-#for data in trainset:
-#    X.append(data[0])
-#    y.append(data[1])
-
-kf = KFold(n_splits=10)
+kf = KFold(n_splits=5)
+max_epochs = 2
 
 accuracies = []
-for lr in [0.001, 0.0005, 0.0001]:
-    for idx in range(0, 4):
+
+for lr in [0.001, 0.0005]: # [0.001, 0.0005, 0.0001]:
+    for idx in range(0, 2):
+
         partAcc = []
-        net = AlexNet()
-        net.cuda()
-
-        if idx == 0:
-            optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
-        elif idx == 1:
-            optimizer = optim.Adam(net.parameters(), lr=lr)
-        elif idx == 2:
-            optimizer = optim.Adamax(net.parameters(), lr=lr)
-        else:
-            optimizer = optim.RMSprop(net.parameters(), lr=lr)
-
-
         for train_index, val_index in kf.split(trainset):
             #X_train, X_test = X[train_index], X[test_index]
             #y_train, y_test = y[train_index], y[test_index]
@@ -158,30 +117,45 @@ for lr in [0.001, 0.0005, 0.0001]:
             val_acc = 0.0
             total = 0
 
-            for i, data in enumerate(trainloader, 0):
-                # get the inputs
-                inputs, labels = data[0].to(device), data[1].to(device)
 
-                # zero the parameter gradients
-                optimizer.zero_grad()
+            net = AlexNet()
+            net.cuda()
 
-                # forward + backward + optimize
-                outputs = net(inputs)
-                _, predicted = torch.max(outputs.data, 1)
-                loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
-                        # print statistics
-                running_loss += loss.item()
-                running_acc += (predicted == labels).sum().item()
-                total += labels.size(0)
+            if idx == 0:
+                optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9)
+            elif idx == 1:
+                optimizer = optim.RMSprop(net.parameters(), lr=lr)
+            elif idx == 2:
+                optimizer = optim.Adam(net.parameters(), lr=lr)
+            else:
+                optimizer = optim.Adamax(net.parameters(), lr=lr)
 
-                if i % 2000 == 1999:    # print every 2000 mini-batches
-                    print('minibatch: %5d loss: %.3f accuracy: %.3f' %
-                          (i + 1, running_loss / 2000, 100 * running_acc / total))
-                    running_loss = 0.0
-                    running_acc = 0.0
-                    total = 0
+
+            for epoch in range(max_epochs):
+                for i, data in enumerate(trainloader, 0):
+                    # get the inputs
+                    inputs, labels = data[0].to(device), data[1].to(device)
+
+                    # zero the parameter gradients
+                    optimizer.zero_grad()
+
+                    # forward + backward + optimize
+                    outputs = net(inputs)
+                    _, predicted = torch.max(outputs.data, 1)
+                    loss = criterion(outputs, labels)
+                    loss.backward()
+                    optimizer.step()
+                            # print statistics
+                    running_loss += loss.item()
+                    running_acc += (predicted == labels).sum().item()
+                    total += labels.size(0)
+
+                    if i % 2000 == 1999:    # print every 2000 mini-batches
+                        print('minibatch: %5d loss: %.3f accuracy: %.3f' %
+                              (i + 1, running_loss / 2000, 100 * running_acc / total))
+                        running_loss = 0.0
+                        running_acc = 0.0
+                        total = 0
 
 
             print('Finished Training')
@@ -198,13 +172,20 @@ for lr in [0.001, 0.0005, 0.0001]:
 
             val_accuracy = (100 * correct / total)
             partAcc.append(val_accuracy)
-            print('Accuracy of the network on the validation split: %d %%' % val_accuracy)
+            print(partAcc)
+            print('Accuracy of the network on the validation split: %.3f %%' % val_accuracy)
 
         print('n: %d' % idx)
         accuracies.append(partAcc)
 
 print(accuracies)
 
+avg_accuracies = []
+for acc_id in accuracies:
+    avg_accuracies.append(sum(acc_id)/len(acc_id))
+
+
+print(avg_accuracies)
 # [[35.16, 53.2, 61.08, 67.98, 70.2, 73.16, 77.34, 83.26, 83.92, 87.52],
 # [55.04, 62.62, 69.88, 73.68, 77.56, 82.84, 85.24, 88.12, 87.8, 91.86],
 # [54.04, 60.94, 64.98, 67.36, 67.48, 69.2, 69.14, 73.3, 70.12, 73.26]]
