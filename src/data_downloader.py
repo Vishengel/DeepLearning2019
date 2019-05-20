@@ -17,10 +17,12 @@ def get_urls_from_database():
 
     # Get the urls of the images with the label 'watercolor' from the table with human-determined labels
     # BAM sqlite database docs: https://gist.github.com/gcr/c0e13bd205ed593f022ae0ad863e4ee2
-    query = "select src from modules, crowd_labels where modules.mid = crowd_labels.mid and attribute = 'media_watercolor' and label='positive' limit 100;"
+    query = "select src from modules, crowd_labels where modules.mid = crowd_labels.mid and attribute = 'media_watercolor' and label='positive';"
 
+    print("Executing SQL query")
     cursor.execute(query)
     url_list = cursor.fetchall()
+    print("Url list fetched")
 
     conn.close()
 
@@ -42,7 +44,7 @@ def download_imgs_from_urls(url_list):
             img_counter += 1
 
             # Keep track of progress
-            if img_counter % 10 == 0:
+            if img_counter % 100 == 0:
                 print("Images downloaded: ", img_counter)
         except HTTPError:
             error_counter += 1
