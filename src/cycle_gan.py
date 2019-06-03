@@ -4,8 +4,8 @@
 from __future__ import print_function, division
 import scipy
 
-from keras.datasets import mnist
-from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
+#from keras.datasets import mnist
+from keras.contrib.layers.normalization.instancenormalization import InstanceNormalization
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, Concatenate
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
@@ -28,7 +28,8 @@ class CycleGAN():
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
 
         # Configure data loader
-        self.dataset_name = 'apple2orange'
+        # self.dataset_name = 'apple2orange'
+        self.dataset_name = 'watercolor_imgs'
         self.data_loader = DataLoader(dataset_name=self.dataset_name,
                                       img_res=(self.img_rows, self.img_cols))
 
