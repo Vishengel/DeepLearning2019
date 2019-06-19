@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import scipy
+import os
 from glob import glob
 import numpy as np
 
@@ -12,7 +13,7 @@ class DataLoader():
     def load_data(self, domain, batch_size=1, is_testing=False):
         data_type = "train%s" % domain if not is_testing else "test%s" % domain
         # path = glob('./datasets/%s/%s/*' % (self.dataset_name, data_type))
-        path = glob('./data/%s/128x128/*' % (self.dataset_name))
+        path = glob('../data/%s/128x128/*' % (domain))
 
 
         batch_images = np.random.choice(path, size=batch_size)
@@ -37,12 +38,13 @@ class DataLoader():
         data_type = "train" if not is_testing else "val"
         # path_A = glob('./datasets/%s/%sA/*' % (self.dataset_name, data_type))
         # path_B = glob('./datasets/%s/%sB/*' % (self.dataset_name, data_type))
-        path_A = glob('./data/%s/128x128/%sA/*' % (self.dataset_name, data_type))
-        path_B = glob('./data/%s/128x128/%sB/*' % ("people_imgs", data_type))
+        path_A = glob('../data/%s/128x128/*' % (self.dataset_name))
+        path_B = glob('../data/%s/128x128/*' % ("people2_imgs"))
 
+                
         self.n_batches = int(min(len(path_A), len(path_B)) / batch_size)
         total_samples = self.n_batches * batch_size
-
+        print(total_samples)
         # Sample n_batches * batch_size from each path list so that model sees all
         # samples from both domains
         path_A = np.random.choice(path_A, total_samples, replace=False)

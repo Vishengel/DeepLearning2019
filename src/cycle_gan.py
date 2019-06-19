@@ -5,7 +5,7 @@ from __future__ import print_function, division
 import scipy
 
 #from keras.datasets import mnist
-from keras.contrib.layers.normalization.instancenormalization import InstanceNormalization
+from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, Concatenate
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
@@ -222,12 +222,21 @@ class CycleGAN():
                     self.sample_images(epoch, batch_i)
 
     def sample_images(self, epoch, batch_i):
-        os.makedirs('images/%s' % self.dataset_name, exist_ok=True)
+        
+        cur_dir_path = os.path.dirname(os.path.realpath(__file__))
+        
+        try:
+            os.mkdir(os.path.join(cur_dir_path, "images"))
+            print("dir created")
+        except:
+            print("dir exists")
         r, c = 2, 3
 
-        imgs_A = self.data_loader.load_data(domain="A", batch_size=1, is_testing=True)
-        imgs_B = self.data_loader.load_data(domain="B", batch_size=1, is_testing=True)
-
+        #imgs_A = self.data_loader.load_data(domain="A", batch_size=1, is_testing=True)
+        #imgs_B = self.data_loader.load_data(domain="B", batch_size=1, is_testing=True)
+        imgs_A = self.data_loader.load_data(domain="watercolor_imgs", batch_size=1, is_testing=True)
+        imgs_B = self.data_loader.load_data(domain="people2_imgs", batch_size=1, is_testing=True)
+        
         # Demo (for GIF)
         #imgs_A = self.data_loader.load_img('datasets/apple2orange/testA/n07740461_1541.jpg')
         #imgs_B = self.data_loader.load_img('datasets/apple2orange/testB/n07749192_4241.jpg')
@@ -253,10 +262,10 @@ class CycleGAN():
                 axs[i, j].set_title(titles[j])
                 axs[i,j].axis('off')
                 cnt += 1
-        fig.savefig("images/%s/%d_%d.png" % (self.dataset_name, epoch, batch_i))
+        fig.savefig(os.path.join(cur_dir_path, "images","%d_%d.png" % (epoch, batch_i)))
         plt.close()
 
 
 if __name__ == '__main__':
     gan = CycleGAN()
-    gan.train(epochs=200, batch_size=1, sample_interval=200)
+    gan.train(epochs=100, batch_size=1, sample_interval=200)
